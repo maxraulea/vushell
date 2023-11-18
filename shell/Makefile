@@ -1,8 +1,8 @@
 # Add additional .c files here if you added any yourself.
-ADDITIONAL_SOURCES =
+ADDITIONAL_SOURCES = src/commandHandler.c src/getUserInfo.c src/handlePipe.c
 
 # Add additional .h files here if you added any yourself.
-ADDITIONAL_HEADERS =
+ADDITIONAL_HEADERS = inc/commandHandler.h inc/getUserInfo.h inc/handlePipe.h
 
 # -- Do not modify below this point - will get replaced during testing --
 TARGET = mysh
@@ -11,7 +11,7 @@ HEADERS = parser/lexer.h parser/ast.h shell.h $(ADDITIONAL_HEADERS)
 GENERATED_SOURCES = parser/parser.c parser/lex.yy.c
 GENERATED_HEADERS = parser/parser.h parser/lex.yy.h
 META_SOURCES = parser/parser.y parser/lexer.l parser/lemon.c parser/lempar.c
-META = Makefile check.py README.rst
+ETA = Makefile check.py README.rst
 
 DOCKERIMG = vusec/vu-os-shell-check
 
