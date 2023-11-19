@@ -48,24 +48,31 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {   
-    //obj_metadata *temp = freeList;
+    void **temp = endFreeList;
     if (!freeList){
         freeList = ptr;
     }else{
-        AddToList(freeList, endFreeList, ptr);
+        *temp = ptr;
     }
     endFreeList = ptr;
 }
 
 void *myrealloc(void *ptr, size_t size)
 {   
-    void* new = mymalloc(size);
+    void* new;
     if(ptr == NULL){
+        new = mymalloc(size);
         return new;
     }
+    else if(size == 0){
+        new = mymalloc(8);
+    }else{
+        new = mymalloc(size);
+    }
     obj_metadata* meta = ptr - sizeof(obj_metadata);
-    memcpy(new, ptr, meta->size);
-    free(ptr);
+    
+    memcpy(new, ptr, size);
+    myfree(ptr);
     return new;
 }
 

@@ -50,22 +50,26 @@ list DeleteFromList(void **head, void *tail, void *node){
     newList.head = head;
     newList.tail = tail;
 
-    printf(" \n \n jaaaaaaaaaa \n \n ");
+    //printf(" \n \n jaaaaaaaaaa \n \n ");
 
     if(head == node){
-        newList.head = *nextData;
+        newList.head = *head;
+        return newList;
+    }
+    else if(tail == node){
+        
+        while(*nextData != tail){
+            last = nextData;
+            nextData = *last;
+        }
+        newList.head = nextData;
         return newList;
     }
     
     while (nextData != NULL)
     {
-        if(*nextData == tail){
-            printf(" \n \n tail \n \n ");
-            newList.tail = nextData;
-            return newList;
-            }
         if (nextData == node){
-            printf(" \n \nnode\n \n ");
+            //printf(" \n \nnode\n \n ");
             printf(" \n this pointer gets deletded %p and this is the node %p and check %p\n \n ", tail, node, *nextData);
             printf(" \n this pointer gets deletded %p and this is the node %p and check %p\n ", temp, *temp, last);
             *temp = *nextData;
@@ -97,24 +101,23 @@ void* FindFreeBlock(size_t size, void** head, void *tail){
        
     while (nextData != NULL)
     {
+
         last = nextData;
         data = *last - sizeof(obj_metadata);
-        if(last == tail){
-            printf("your mamaamamamammm");
-        }
 
-        maxSize = data->size + 8 - data->size % 8;
-
-        if(maxSize >= size){
-            printf(" \nthis is the size %lu \n", maxSize);
-            printf(" \n %p and \n", *
-            last);
-            return *last;
-        }
         if(last == tail){
             return NULL;
             
         }
+        maxSize = data->size;
+        // + 8 - data->size % 8;
+
+        if(maxSize >= size){
+            printf(" \nthis is the size %lu \n", maxSize);
+            printf(" \n %p and \n", *last);
+            return *last;
+        }
+
 
         nextData = *last;
         
