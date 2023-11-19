@@ -2,6 +2,7 @@
     "files.associations": {
         "metadata.h": "c",
         "__node_handle": "c",
-        "unistd.h": "c"
+        "unistd.h": "c",
+        "stdio.h": "c"
     }
 }

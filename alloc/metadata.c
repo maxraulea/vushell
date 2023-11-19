@@ -110,6 +110,11 @@ void* FindFreeBlock(size_t size, void** head, void *tail){
             
         }
         maxSize = data->size;
+
+        if(maxSize > 20000){
+            printf("\n \n \n  why the hell are you soooo big  \n \n \n");
+            printf(" here come all the pointers  the tail: %p  the head: %p nextdata: %p data: %p last*: %p and the size %#x and the data", tail, head, nextData, data, *last, data);
+        }
         // + 8 - data->size % 8;
 
         if(maxSize >= size){

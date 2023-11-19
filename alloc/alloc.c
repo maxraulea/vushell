@@ -16,6 +16,8 @@ void *memObjects;
 void **freeList; // store all the free blocks pointer to freed region, in that region is the pointer to next freed regio
 void *endFreeList;
 
+
+/// malloc 0???????
 void *mymalloc(size_t size)
 {
 
@@ -33,6 +35,9 @@ void *mymalloc(size_t size)
 
 
     allocatedMemory = AllocateBlock(size);
+    if(allocatedMemory == NULL){
+        return NULL;
+    }
 
     EditMetadata(allocatedMemory, size, 0);
 
@@ -48,6 +53,7 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {   
+    printf("\nfree the pointer %p \n", ptr);
     void **temp = endFreeList;
     if (!freeList){
         freeList = ptr;
@@ -60,19 +66,34 @@ void myfree(void *ptr)
 void *myrealloc(void *ptr, size_t size)
 {   
     void* new;
-    if(ptr == NULL){
-        new = mymalloc(size);
-        return new;
+    if(ptr == NULL){       
+        return mymalloc(size);
     }
     else if(size == 0){
         new = mymalloc(8);
     }else{
         new = mymalloc(size);
     }
-    obj_metadata* meta = ptr - sizeof(obj_metadata);
+   // printf(" \n jo  %p ", ptr);
+    obj_metadata* meta = new - sizeof(obj_metadata);
+    //printf("gfgfgfg");
+    //fflush(stdout);
+    //printf("size %d ", meta->size);
+    memcpy(new, ptr, meta->size);
+   // printf("%#x bytes 1 %#x bytes 2 ", , );
     
-    memcpy(new, ptr, size);
-    myfree(ptr);
+    char* l = ptr;
+   // printf(" \n ja %p size of old one %d and the value at %d \n", ptr , meta->size, *l);
+   // printf(" \ncharacter 1 %d and character 2 %d\n", l[0], l[1]);
+    
+   char* u = new;
+   printf("%#x bytes 1 %#x bytes 2 ", l[0] , u[0]);
+   printf("this is the pointer %p ", new);
+   fflush(stdout);
+   // printf(" \n ja %p size of old one %d and the value at %d \n", new , meta->size, *l);
+   // printf(" \ncharacter 1 %d and character 2 %d\n", l[0], l[1]);
+
+    //myfree(ptr);
     return new;
 }
 
@@ -80,8 +101,10 @@ static void* AllocateBlock(size_t size){
 
     size_t totalSize;
     void *newMem;
-
-    if (size % 8 == 0){
+    if (size == 0){
+        return NULL;
+    }
+    else if (size % 8 == 0){
         totalSize = sizeof(obj_metadata) + size;
     }
     else{
