@@ -137,6 +137,7 @@ void* FindFreeBlock(size_t size, void** head, void *tail){
 
     if(nextData == tail){
         data = nextData - sizeof(obj_metadata);
+        printf("head: %p and tail: %p", head, tail);
         if(data->size >= size){
             if(data->size - size > 16){
                 data->size = data->size - size - sizeof(obj_metadata);

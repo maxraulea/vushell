@@ -102,7 +102,14 @@ void myfree(void *ptr)
         
         printf("head: %p and tail: %p", freeList, endFreeList);
 
-        if(!decreaseBreak(ptr, freeList, endFreeList)){
+        int test = decreaseBreak(ptr, freeList, endFreeList);
+
+        if(test == 2){
+            removeFromLastFreed(ptr); 
+            freeList = NULL;
+            endFreeList = NULL;
+        }
+        else if(test == 1){
             list newList = DeleteFromList(freeList, endFreeList, ptr);    
             removeFromLastFreed(ptr);      
             endFreeList = newList.tail;
@@ -110,8 +117,13 @@ void myfree(void *ptr)
             printf("YEEEEEETTTTTTTT \n\n");
             fflush(stdout);
         }
+        else{
+
+        }
+
         
-        printfreelist(freeList, endFreeList);
+        
+        //printfreelist(freeList, endFreeList);
         printf("head: %p and tail: %p", freeList, endFreeList);
     }
     
@@ -232,7 +244,7 @@ int decreaseBreak(void* ptr, void* head, void* tail){
         if(currBrk == head + data->size + remainingBytes){
             brk(head - sizeof(obj_metadata));
             remainingBytes = 0;
-            return 0;
+            return 2;
         }
     }
     else{
@@ -241,11 +253,11 @@ int decreaseBreak(void* ptr, void* head, void* tail){
         if(currBrk == ptr + data->size + remainingBytes){
             brk(ptr - sizeof(obj_metadata));
             remainingBytes = 0;
-            return 0;
+            return 1;
         }
     }
 
-    return 1;
+    return 0;
     }
 /*
  * Enable the code below to enable system allocator support for your allocator.
