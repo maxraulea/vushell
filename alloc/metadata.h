@@ -16,11 +16,15 @@ typedef struct{
     void *tail;
 } list;
 
-void AddToList(void **head, void *tail, void *node);
+list AddToList(void **head, void *tail, void *node);
 
 list DeleteFromList(void **head, void *tail, void *node);
 
 void EditMetadata(obj_metadata *obj, size_t size, long int free);
+
+void* MergeFreeList(void **head, void *tail, void** lastFreed);
+
+void printfreelist(void **head, void* tail);
 
 void* FindFreeBlock(size_t size, void** heap, void *tail);
 

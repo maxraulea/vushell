@@ -8,25 +8,56 @@
 
 #define SBRK_ERROR (void*)-1
 #define ALLIGNMENT sizeof(long)
+#define LOCALITY 5
+#define MEM_CHUNK 512
+
+static void* lastFreed[LOCALITY];
+
+void append(void* new);
+void* findInLastFreed(size_t size);
+void removeFromLastFreed(void* new);
 
 static void* AllocateBlock(size_t size);
 
-void *memObjects;
+int decreaseBreak(void* ptr, void* head, void* tail);
+
+void *beginChunk = NULL;;
+size_t remainingBytes = 0;
 
 void **freeList; // store all the free blocks pointer to freed region, in that region is the pointer to next freed regio
 void *endFreeList;
 
-
-/// malloc 0???????
 void *mymalloc(size_t size)
 {
 
     obj_metadata *freeBlock;
     void *allocatedMemory;
+    size_t totalSize;
+    if (size == 0){
+        return NULL;
+    }
 
-    freeBlock = FindFreeBlock(size, freeList, endFreeList);
+    if (size % 8 == 0){
+        totalSize = sizeof(obj_metadata) + size;
+    }
+    else{
+        totalSize = sizeof(obj_metadata) + size + 8 - size % 8;
+    }
+
+     freeBlock = findInLastFreed(totalSize - 8);
+           
+     if(freeBlock){
+         list newList = DeleteFromList(freeList, endFreeList, freeBlock);
+         removeFromLastFreed(freeBlock);
+         endFreeList = newList.tail;
+         freeList = newList.head;
+         return freeBlock;    
+     }
+
+    freeBlock = FindFreeBlock(totalSize, freeList, endFreeList);
 
     if(freeBlock){
+
         list newList = DeleteFromList(freeList, endFreeList, freeBlock);
         endFreeList = newList.tail;
         freeList = newList.head;
@@ -34,12 +65,14 @@ void *mymalloc(size_t size)
     }
 
 
-    allocatedMemory = AllocateBlock(size);
+    allocatedMemory = AllocateBlock(totalSize);
     if(allocatedMemory == NULL){
         return NULL;
     }
 
-    EditMetadata(allocatedMemory, size, 0);
+    EditMetadata(allocatedMemory, totalSize - sizeof(obj_metadata), 0);
+    //printf("allocated pointer %p with size %lu \n",allocatedMemory + sizeof(obj_metadata), totalSize);
+    //fflush(stdout);
 
     return allocatedMemory + sizeof(obj_metadata);
 }
@@ -53,14 +86,36 @@ void *mycalloc(size_t nmemb, size_t size)
 
 void myfree(void *ptr)
 {   
-    printf("\nfree the pointer %p \n", ptr);
-    void **temp = endFreeList;
+    if(ptr == NULL){
+        return;
+    }
     if (!freeList){
         freeList = ptr;
+        endFreeList = ptr;
+        lastFreed[0] = ptr;
     }else{
-        *temp = ptr;
+        list l = AddToList(freeList, endFreeList, ptr);
+        freeList = l.head;
+        endFreeList = l.tail;
+        append(ptr);
+        endFreeList = MergeFreeList(freeList, endFreeList, lastFreed);
+        
+        printf("head: %p and tail: %p", freeList, endFreeList);
+
+        if(!decreaseBreak(ptr, freeList, endFreeList)){
+            list newList = DeleteFromList(freeList, endFreeList, ptr);    
+            removeFromLastFreed(ptr);      
+            endFreeList = newList.tail;
+            freeList = newList.head;
+            printf("YEEEEEETTTTTTTT \n\n");
+            fflush(stdout);
+        }
+        
+        printfreelist(freeList, endFreeList);
+        printf("head: %p and tail: %p", freeList, endFreeList);
     }
-    endFreeList = ptr;
+    
+    
 }
 
 void *myrealloc(void *ptr, size_t size)
@@ -70,7 +125,7 @@ void *myrealloc(void *ptr, size_t size)
         return mymalloc(size);
     }
     else if(size == 0){
-        new = mymalloc(8);
+        new = mymalloc(0);
     }else{
         new = mymalloc(size);
     }
@@ -97,28 +152,101 @@ void *myrealloc(void *ptr, size_t size)
     return new;
 }
 
-static void* AllocateBlock(size_t size){
+static void* AllocateBlock(size_t totalSize){
+    if(remainingBytes < totalSize){
+        size_t size = totalSize;
+        if(beginChunk == NULL){
+            beginChunk = sbrk(MEM_CHUNK);
+            remainingBytes += MEM_CHUNK;
+        }
 
-    size_t totalSize;
-    void *newMem;
-    if (size == 0){
-        return NULL;
-    }
-    else if (size % 8 == 0){
-        totalSize = sizeof(obj_metadata) + size;
+        while(remainingBytes < size){
+            remainingBytes += MEM_CHUNK;
+            if (sbrk(MEM_CHUNK) == SBRK_ERROR){
+                return NULL;
+            }
+        }
+        remainingBytes -= totalSize;
+        beginChunk += totalSize;
+        return beginChunk - totalSize;
     }
     else{
-        totalSize = sizeof(obj_metadata) + size + 8 - size % 8;
+        remainingBytes -= totalSize;
+        beginChunk += totalSize;
+        return beginChunk - totalSize;
     }
     
-    newMem = sbrk(totalSize);
-    if (newMem == SBRK_ERROR){
-        return NULL;
-    }
-
-    return newMem;
 }
 
+void append(void* new){
+
+    for(int i = LOCALITY - 1; i > 0; i--){
+        lastFreed[i] = lastFreed[i - 1];
+    }
+    lastFreed[0] = new;
+}
+
+void* findInLastFreed(size_t size){
+    obj_metadata* data;
+    void* new;
+    
+    for(int i = 0; i < LOCALITY; i++){
+        if(lastFreed[i] == NULL){
+            continue;
+        }
+        
+        data = lastFreed[i] - sizeof(obj_metadata);
+
+        if(data->size >= size){
+            if(data->size - size > 16){
+                data->size = data->size - size - sizeof(obj_metadata);
+                new = lastFreed[i] + data->size;
+                data = new;
+                data->size = size - sizeof(obj_metadata); 
+                return new;
+                
+            }
+            return lastFreed[i];
+        }
+    }
+    return NULL;
+}
+
+void removeFromLastFreed(void* new){
+    for(int i = 0; i < LOCALITY; i++){
+        if(lastFreed[i] == NULL){
+            continue;
+        }
+        if(lastFreed[i] == new){
+            lastFreed[i] = NULL;
+        }
+    }
+}
+
+int decreaseBreak(void* ptr, void* head, void* tail){
+    obj_metadata* data;
+    void *currBrk = sbrk(0);
+
+    if(head == tail){
+        data = head - sizeof(obj_metadata);
+        if(currBrk == head + data->size + remainingBytes){
+            brk(head - sizeof(obj_metadata));
+            remainingBytes = 0;
+            return 0;
+        }
+    }
+    else{
+        data = ptr - sizeof(obj_metadata);
+        printf("curr brk %p the ptr %p and my lookup %p \n", currBrk, ptr, ptr + data->size + remainingBytes);
+        if(currBrk == ptr + data->size + remainingBytes){
+            brk(ptr - sizeof(obj_metadata));
+            remainingBytes = 0;
+            return 0;
+        }
+    }
+
+    return 1;
+    }
 /*
  * Enable the code below to enable system allocator support for your allocator.
  * Doing so will make debugging much harder (e.g., using printf may result in
